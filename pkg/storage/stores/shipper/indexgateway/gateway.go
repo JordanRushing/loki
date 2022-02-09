@@ -1,31 +1,110 @@
 package indexgateway
 
 import (
+	"flag"
+
+	"github.com/go-kit/log"
+	"github.com/grafana/dskit/kv"
+	"github.com/grafana/dskit/ring"
 	"github.com/grafana/dskit/services"
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/grafana/loki/pkg/storage/chunk"
 	"github.com/grafana/loki/pkg/storage/stores/shipper"
 	"github.com/grafana/loki/pkg/storage/stores/shipper/indexgateway/indexgatewaypb"
 	"github.com/grafana/loki/pkg/storage/stores/shipper/util"
+	lokiutil "github.com/grafana/loki/pkg/util"
 )
 
-const maxIndexEntriesPerResponse = 1000
+const (
+	maxIndexEntriesPerResponse     = 1000
+	ringAutoForgetUnhealthyPeriods = 10
+	ringKey                        = "index-gateway"
+	ringNameForServer              = "index-gateway"
+	ringNumTokens                  = 1
+	ringReplicationFactor          = 3
+)
 
 type gateway struct {
 	services.Service
 
+	cfg Config
+	log log.Logger
+
 	shipper chunk.IndexClient
+
+	subservices        *services.Manager
+	subservicesWatcher *services.FailureWatcher
+
+	ringLifecycler *ring.BasicLifecycler
+	ring           *ring.Ring
 }
 
-func NewIndexGateway(shipperIndexClient *shipper.Shipper) *gateway {
+type Config struct {
+	useIndexGatewayRing bool                `yaml:"use_index_gateway_ring"`
+	IndexGatewayRing    lokiutil.RingConfig `yaml:"index_gateway_ring,omitempty"`
+}
+
+func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
+	f.BoolVar(&cfg.useIndexGatewayRing, "index-gateway.use-index-gateway-ring", false, "Set to true to enable per-tenant hashing to Index Gateways via a ring. This helps with horizontal scalability by reducing startup time required when provisioning a new Index Gateway")
+	cfg.IndexGatewayRing.RegisterFlagsWithPrefix("index-gateway.", "collectors/", f)
+}
+
+func NewIndexGateway(cfg Config, log log.Logger, registerer prometheus.Registerer, shipperIndexClient *shipper.Shipper) (*gateway, error) {
 	g := &gateway{
 		shipper: shipperIndexClient,
+		cfg:     cfg,
+		log:     log,
 	}
+
 	g.Service = services.NewIdleService(nil, func(failureCase error) error {
 		g.shipper.Stop()
 		return nil
 	})
-	return g
+
+	if cfg.useIndexGatewayRing {
+		ringStore, err := kv.NewClient(
+			cfg.IndexGatewayRing.KVStore,
+			ring.GetCodec(),
+			kv.RegistererWithKVName(prometheus.WrapRegistererWithPrefix("loki_", registerer), "index-gateway"),
+			log,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "create KV store client")
+		}
+
+		lifecyclerCfg, err := cfg.IndexGatewayRing.ToLifecyclerConfig(ringNumTokens, log)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid ring lifecycler config")
+		}
+
+		delegate := ring.BasicLifecyclerDelegate(g)
+		delegate = ring.NewLeaveOnStoppingDelegate(delegate, log)
+		delegate = ring.NewTokensPersistencyDelegate(cfg.IndexGatewayRing.TokensFilePath, ring.JOINING, delegate, log)
+		delegate = ring.NewAutoForgetDelegate(ringAutoForgetUnhealthyPeriods*cfg.IndexGatewayRing.HeartbeatTimeout, delegate, log)
+
+		g.ringLifecycler, err = ring.NewBasicLifecycler(lifecyclerCfg, ringNameForServer, ringKey, ringStore, delegate, log, registerer)
+		if err != nil {
+			return nil, errors.Wrap(err, "create ring lifecycler")
+		}
+
+		ringCfg := cfg.IndexGatewayRing.ToRingConfig(ringReplicationFactor)
+		g.ring, err = ring.NewWithStoreClientAndStrategy(ringCfg, ringNameForServer, ringKey, ringStore, ring.NewIgnoreUnhealthyInstancesReplicationStrategy(), prometheus.WrapRegistererWithPrefix("loki_", registerer), log)
+		if err != nil {
+			return nil, errors.Wrap(err, "create ring client")
+		}
+
+		svcs := []services.Service{g.ringLifecycler, g.ring}
+		g.subservices, err = services.NewManager(svcs...)
+		if err != nil {
+			return nil, err
+		}
+		g.subservicesWatcher = services.NewFailureWatcher()
+		g.subservicesWatcher.WatchManager(g.subservices)
+	}
+
+	return g, nil
 }
 
 func (g gateway) QueryIndex(request *indexgatewaypb.QueryIndexRequest, server indexgatewaypb.IndexGateway_QueryIndexServer) error {
