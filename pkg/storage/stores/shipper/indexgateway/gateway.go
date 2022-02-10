@@ -28,7 +28,7 @@ const (
 	ringReplicationFactor          = 3
 )
 
-type gateway struct {
+type Gateway struct {
 	services.Service
 
 	cfg Config
@@ -44,8 +44,8 @@ type gateway struct {
 }
 
 type Config struct {
-	useIndexGatewayRing bool                `yaml:"use_index_gateway_ring"`
-	IndexGatewayRing    lokiutil.RingConfig `yaml:"index_gateway_ring,omitempty"`
+	useIndexGatewayRing bool                `yaml:"use_index_gateway_ring"`       // TODO: maybe just `yaml:"useRing"`?
+	IndexGatewayRing    lokiutil.RingConfig `yaml:"index_gateway_ring,omitempty"` // TODO: maybe just `yaml:"ring"`?
 }
 
 func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
@@ -53,8 +53,8 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	cfg.IndexGatewayRing.RegisterFlagsWithPrefix("index-gateway.", "collectors/", f)
 }
 
-func NewIndexGateway(cfg Config, log log.Logger, registerer prometheus.Registerer, shipperIndexClient *shipper.Shipper) (*gateway, error) {
-	g := &gateway{
+func NewIndexGateway(cfg Config, log log.Logger, registerer prometheus.Registerer, shipperIndexClient *shipper.Shipper) (*Gateway, error) {
+	g := &Gateway{
 		shipper: shipperIndexClient,
 		cfg:     cfg,
 		log:     log,
@@ -109,7 +109,7 @@ func NewIndexGateway(cfg Config, log log.Logger, registerer prometheus.Registere
 	return g, nil
 }
 
-func (g *gateway) QueryIndex(request *indexgatewaypb.QueryIndexRequest, server indexgatewaypb.IndexGateway_QueryIndexServer) error {
+func (g *Gateway) QueryIndex(request *indexgatewaypb.QueryIndexRequest, server indexgatewaypb.IndexGateway_QueryIndexServer) error {
 	var outerErr error
 	var innerErr error
 
