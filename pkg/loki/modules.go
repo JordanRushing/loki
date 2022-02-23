@@ -722,6 +722,7 @@ func (t *Loki) initCompactor() (services.Service, error) {
 
 func (t *Loki) initIndexGateway() (services.Service, error) {
 	t.Cfg.StorageConfig.BoltDBShipperConfig.Mode = shipper.ModeReadOnly
+	t.Cfg.IndexGateway.IndexGatewayRing.KVStore.MemberlistKV = t.MemberlistKV.GetMemberlistKV
 	objectClient, err := chunk_storage.NewObjectClient(t.Cfg.StorageConfig.BoltDBShipperConfig.SharedStoreType, t.Cfg.StorageConfig.Config, t.clientMetrics)
 	if err != nil {
 		return nil, err
@@ -736,6 +737,8 @@ func (t *Loki) initIndexGateway() (services.Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	t.Server.HTTP.Path("/indexgateway/ring").Methods("GET", "POST").Handler(gateway)
 	indexgatewaypb.RegisterIndexGatewayServer(t.Server.GRPC, gateway)
 	return gateway, nil
 }
