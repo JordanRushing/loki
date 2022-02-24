@@ -111,10 +111,12 @@ github.com/alecthomas/units
 # github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a
 ## explicit
 github.com/alicebob/gopher-json
-# github.com/alicebob/miniredis/v2 v2.14.3
+# github.com/alicebob/miniredis/v2 v2.18.0
 ## explicit; go 1.13
 github.com/alicebob/miniredis/v2
 github.com/alicebob/miniredis/v2/geohash
+github.com/alicebob/miniredis/v2/hyperloglog
+github.com/alicebob/miniredis/v2/metro
 github.com/alicebob/miniredis/v2/server
 # github.com/armon/go-metrics v0.3.9
 ## explicit; go 1.12
