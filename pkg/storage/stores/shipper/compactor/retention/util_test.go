@@ -224,6 +224,7 @@ func (t *testStore) open() {
 		t.cfg.Config,
 		chunk.StoreConfig{},
 		schemaCfg.SchemaConfig,
+		nil, /* index gateway ring */
 		t.limits,
 		t.clientMetrics,
 		nil,
@@ -283,6 +284,7 @@ func newTestStore(t testing.TB, clientMetrics chunk_storage.ClientMetrics) *test
 		config.Config,
 		chunk.StoreConfig{},
 		schemaCfg.SchemaConfig,
+		nil, /* index gateway ring */
 		limits,
 		clientMetrics,
 		nil,
