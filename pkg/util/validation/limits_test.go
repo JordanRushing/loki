@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	tenant1 = "tenant1"
+	tenant2 = "tenantTwo"
+	tenant3 = "tenantThree"
+)
+
 func TestSmallestPositiveIntPerTenant(t *testing.T) {
 	type args struct {
 		tenantIDs []string
@@ -18,7 +24,7 @@ func TestSmallestPositiveIntPerTenant(t *testing.T) {
 		{
 			name: "smallest positive int per tenant",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) int {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					return len(tenantID)
@@ -49,7 +55,7 @@ func TestSmallestPositiveNonZeroIntPerTenant(t *testing.T) {
 		{
 			name: "smallest positive non-zero int per tenant",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) int {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
@@ -89,7 +95,7 @@ func TestSmallestPositiveNonZeroDurationPerTenant(t *testing.T) {
 		{
 			name: "smallest positive non-zero duration per tenant",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
@@ -129,7 +135,7 @@ func TestMaxDurationPerTenant(t *testing.T) {
 		{
 			name: "max duration per tenant",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
@@ -169,7 +175,7 @@ func TestMaxDurationOrZeroPerTenant(t *testing.T) {
 		{
 			name: "max duration or zero per tenant with no zero values",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
@@ -189,7 +195,7 @@ func TestMaxDurationOrZeroPerTenant(t *testing.T) {
 		{
 			name: "max duration or zero per tenant with zero values",
 			args: args{
-				tenantIDs: []string{"tenant1", "tenantTwo", "tenantThree"},
+				tenantIDs: []string{tenant1, tenant2, tenant3},
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
