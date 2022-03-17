@@ -59,11 +59,11 @@ func TestSmallestPositiveNonZeroIntPerTenant(t *testing.T) {
 				f: func(tenantID string) int {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
-					case "tenant1":
+					case tenant1:
 						return 1
-					case "tenantTwo":
+					case tenant2:
 						return 0
-					case "tenantThree":
+					case tenant3:
 						return 2
 					default:
 						return len(tenantID)
@@ -99,11 +99,11 @@ func TestSmallestPositiveNonZeroDurationPerTenant(t *testing.T) {
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
-					case "tenant1":
+					case tenant1:
 						return time.Second
-					case "tenantTwo":
+					case tenant2:
 						return 0
-					case "tenantThree":
+					case tenant3:
 						return 2 * time.Second
 					default:
 						return 3 * time.Second
@@ -139,11 +139,11 @@ func TestMaxDurationPerTenant(t *testing.T) {
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
-					case "tenant1":
+					case tenant1:
 						return time.Second
-					case "tenantTwo":
+					case tenant2:
 						return 2 * time.Second
-					case "tenantThree":
+					case tenant3:
 						return 3 * time.Second
 					default:
 						return time.Second
@@ -179,11 +179,11 @@ func TestMaxDurationOrZeroPerTenant(t *testing.T) {
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
-					case "tenant1":
+					case tenant1:
 						return time.Second
-					case "tenantTwo":
+					case tenant2:
 						return 2 * time.Second
-					case "tenantThree":
+					case tenant3:
 						return 3 * time.Second
 					default:
 						return time.Second
@@ -199,11 +199,11 @@ func TestMaxDurationOrZeroPerTenant(t *testing.T) {
 				f: func(tenantID string) time.Duration {
 					// For ease of testing just pick three unique values representing per-tenant limits
 					switch tenantID {
-					case "tenant1":
+					case tenant1:
 						return time.Second
-					case "tenantTwo":
+					case tenant2:
 						return time.Duration(0)
-					case "tenantThree":
+					case tenant3:
 						return 3 * time.Second
 					default:
 						return time.Second
