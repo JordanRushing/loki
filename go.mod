@@ -62,7 +62,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.14.1
 	github.com/klauspost/pgzip v1.2.5
-	github.com/mattn/go-ieproxy v0.0.1
+	github.com/mattn/go-ieproxy v0.0.3
 	github.com/minio/minio-go/v7 v7.0.10
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/modern-go/reflect2 v1.0.2
