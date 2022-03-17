@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/grafana/dskit/flagext"
-	"github.com/grafana/dskit/ring"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 
@@ -97,7 +96,7 @@ func TestCustomIndexClient(t *testing.T) {
 		{
 			indexClientName: "boltdb",
 			indexClientFactories: indexStoreFactories{
-				indexClientFactoryFunc: func(_ StoreLimits, _ ring.ReadRing) (client chunk.IndexClient, e error) {
+				indexClientFactoryFunc: func(_ StoreLimits) (client chunk.IndexClient, e error) {
 					return newBoltDBCustomIndexClient(cfg.BoltDBConfig)
 				},
 			},
@@ -117,7 +116,7 @@ func TestCustomIndexClient(t *testing.T) {
 		{
 			indexClientName: "boltdb",
 			indexClientFactories: indexStoreFactories{
-				indexClientFactoryFunc: func(_ StoreLimits, _ ring.ReadRing) (client chunk.IndexClient, e error) {
+				indexClientFactoryFunc: func(_ StoreLimits) (client chunk.IndexClient, e error) {
 					return newBoltDBCustomIndexClient(cfg.BoltDBConfig)
 				},
 				tableClientFactoryFunc: func() (client chunk.TableClient, e error) {
@@ -136,7 +135,7 @@ func TestCustomIndexClient(t *testing.T) {
 			RegisterIndexStore(tc.indexClientName, tc.indexClientFactories.indexClientFactoryFunc, tc.indexClientFactories.tableClientFactoryFunc)
 		}
 
-		indexClient, err := NewIndexClient(tc.indexClientName, cfg, schemaCfg, nil /* index gateway ring */, nil, nil)
+		indexClient, err := NewIndexClient(tc.indexClientName, cfg, schemaCfg, nil, nil)
 		if tc.errorExpected {
 			require.Error(t, err)
 		} else {
