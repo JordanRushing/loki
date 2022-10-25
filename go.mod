@@ -14,7 +14,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Shopify/sarama v1.30.0
 	github.com/Workiva/go-datastructures v1.0.53
-	github.com/alicebob/miniredis/v2 v2.22.0
+	github.com/alicebob/miniredis/v2 v2.23.0
 	github.com/aws/aws-sdk-go v1.44.102
 	github.com/baidubce/bce-sdk-go v0.9.111
 	github.com/bmatcuk/doublestar v1.2.2
