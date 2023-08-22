@@ -1962,4 +1962,9 @@ func Test_FailQuery(t *testing.T) {
 	// Empty parameter to json parser
 	_, _, err = rvm.Parse(`topk(10,sum by(namespace)(count_over_time({application="nginx", site!="eu-west-1-dev"} |= "/artifactory/" != "api" != "binarystore" | json [1d])))`)
 	require.NoError(t, err)
+	// Invalid char escape panics
+	_, _, err = rvm.Parse(`sum(rate({cluster="test", namespace="test"} |= "error parsing explore query from context " | logfmt | msg=~".*?error parsing explore query from context (?i)(\d+[a-z]|[a-z]+\d)\w* url (?i)(https?://\S+) parse Prometheus expression (.*?) container="querier"\} \|= "updating memcached (.*?) (\d+):(\d+): parse error: unexpected character: '\|'.*"[30m]))`)
+	require.NoError(t, err)
+	_, _, err = rvm.Parse(`sum by (TraceId,message,service,link)(count_over_time({initiative="DummyApp", service="Server"} | json | label_format link="<https://test.test.net/explore?orgId=1&left=%7B%22datasource%22:%22RaClj_37z%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22RaClj_37z%22%7D,%22editorMode%22:%22code%22,%22expr%22:%22%7Binitiative%3D%5C%22DummyApp%5C%22,service%3D%5C%22Server%5C%22%7D%20%7C%20json%20%7C%20line_format%20%60%7B%7B.Body_Message%7D%7D%60%7C%20TraceId%20%3D%20%60%7B%7B.TraceId%7D%7D%60%22,%22queryType%22:%22range%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D%7CGrafana>" | label_format message="{{.Body_Message}}" | label_format service="{{.Resource_Service_Name}}" | Attributes_Response_Code=~"5\d{2}"[1m]))`)
+	require.NoError(t, err)
 }
