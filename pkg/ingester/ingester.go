@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	strings "strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/grafana/dskit/concurrency"
+	"github.com/grafana/dskit/flagext"
 	"github.com/grafana/dskit/modules"
 	"github.com/grafana/dskit/multierror"
 	"github.com/grafana/dskit/ring"
@@ -113,6 +115,11 @@ type Config struct {
 	MaxDroppedStreams int `yaml:"max_dropped_streams"`
 
 	ShutdownMarkerPath string `yaml:"shutdown_marker_path"`
+
+	// Configure the token generation strategy for the ingester lifecycler.
+	TokenGenerationStrategy         string                 `yaml:"token_generation_strategy"`
+	SpreadMinimizingZones           flagext.StringSliceCSV `yaml:"spread_minimizing_zones"`
+	SpreadMinimizingJoinRingInOrder bool                   `yaml:"spread_minimizing_join_ring_in_order"`
 }
 
 // RegisterFlags registers the flags.
@@ -137,6 +144,11 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.IntVar(&cfg.IndexShards, "ingester.index-shards", index.DefaultIndexShards, "Shard factor used in the ingesters for the in process reverse index. This MUST be evenly divisible by ALL schema shard factors or Loki will not start.")
 	f.IntVar(&cfg.MaxDroppedStreams, "ingester.tailer.max-dropped-streams", 10, "Maximum number of dropped streams to keep in memory during tailing.")
 	f.StringVar(&cfg.ShutdownMarkerPath, "ingester.shutdown-marker-path", "", "Path where the shutdown marker file is stored. If not set and common.path_prefix is set then common.path_prefix will be used.")
+
+	// Lifecycler TokenGenerator
+	f.StringVar(&cfg.TokenGenerationStrategy, "ingester.token-generation-strategy", "random", fmt.Sprintf("Specifies the strategy used for generating tokens for ingesters. Supported values are: %s.", strings.Join([]string{"random", "spread-minimizing"}, ",")))
+	f.BoolVar(&cfg.SpreadMinimizingJoinRingInOrder, "ingester.spread-minimizing-join-ring-in-order", false, fmt.Sprintf("True to allow this ingester registering tokens in the ring only after all previous ingesters (with ID lower than the current one) have already been registered. This configuration option is supported only when the token generation strategy is set to %q.", "spread-minimizing"))
+	f.Var(&cfg.SpreadMinimizingZones, "ingester.spread-minimizing-zones", fmt.Sprintf("Comma-separated list of zones in which spread minimizing strategy is used for token generation. This value must include all zones in which ingesters are deployed, and must not change over time. This configuration is used only when %q is set to %q.", "ingester.token-generation-strategy", "spread-minimizing"))
 }
 
 func (cfg *Config) Validate() error {
@@ -148,6 +160,29 @@ func (cfg *Config) Validate() error {
 
 	if err = cfg.WAL.Validate(); err != nil {
 		return err
+	}
+
+	if err := cfg.LifecyclerConfig.Validate(); err != nil {
+		return err
+	}
+
+	// Set the token generator based on the configured strategy
+	switch cfg.TokenGenerationStrategy {
+	case "random":
+		cfg.LifecyclerConfig.RingTokenGenerator = ring.NewRandomTokenGenerator()
+	case "spread-minimizing":
+		cfg.LifecyclerConfig.RingTokenGenerator, err = ring.NewSpreadMinimizingTokenGenerator(
+			cfg.LifecyclerConfig.ID,
+			cfg.LifecyclerConfig.Zone,
+			cfg.SpreadMinimizingZones,
+			cfg.SpreadMinimizingJoinRingInOrder,
+			util_log.Logger,
+		)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid token generation strategy: %s", cfg.TokenGenerationStrategy)
 	}
 
 	if cfg.IndexShards <= 0 {

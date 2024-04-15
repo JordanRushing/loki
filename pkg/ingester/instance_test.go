@@ -39,9 +39,10 @@ import (
 
 func defaultConfig() *Config {
 	cfg := Config{
-		BlockSize:     512,
-		ChunkEncoding: "gzip",
-		IndexShards:   32,
+		BlockSize:               512,
+		ChunkEncoding:           "gzip",
+		IndexShards:             32,
+		TokenGenerationStrategy: "random",
 	}
 	if err := cfg.Validate(); err != nil {
 		panic(errors.Wrap(err, "error building default test config"))

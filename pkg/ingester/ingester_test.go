@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/dskit/flagext"
 	"github.com/grafana/dskit/httpgrpc"
 	"github.com/grafana/dskit/middleware"
+	"github.com/grafana/dskit/ring"
 	"github.com/grafana/dskit/services"
 	"github.com/grafana/dskit/user"
 	"github.com/prometheus/common/model"
@@ -673,57 +674,82 @@ func TestIngester_asyncStoreMaxLookBack(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	for i, tc := range []struct {
-		in       Config
-		err      bool
-		expected Config
+		in  Config
+		err bool
 	}{
 		{
 			in: Config{
-				MaxChunkAge:   time.Minute,
-				ChunkEncoding: chunkenc.EncGZIP.String(),
-				IndexShards:   index.DefaultIndexShards,
-			},
-			expected: Config{
-				MaxChunkAge:    time.Minute,
-				ChunkEncoding:  chunkenc.EncGZIP.String(),
-				parsedEncoding: chunkenc.EncGZIP,
-				IndexShards:    index.DefaultIndexShards,
+				LifecyclerConfig:        ring.LifecyclerConfig{ID: "instance-1"},
+				MaxChunkAge:             time.Minute,
+				ChunkEncoding:           chunkenc.EncGZIP.String(),
+				IndexShards:             index.DefaultIndexShards,
+				TokenGenerationStrategy: "random",
 			},
 		},
 		{
 			in: Config{
-				ChunkEncoding: chunkenc.EncSnappy.String(),
-				IndexShards:   index.DefaultIndexShards,
-			},
-			expected: Config{
-				ChunkEncoding:  chunkenc.EncSnappy.String(),
-				parsedEncoding: chunkenc.EncSnappy,
-				IndexShards:    index.DefaultIndexShards,
+				LifecyclerConfig:                ring.LifecyclerConfig{ID: "instance-2", Zone: "zone-a"},
+				MaxChunkAge:                     time.Minute,
+				ChunkEncoding:                   chunkenc.EncGZIP.String(),
+				IndexShards:                     index.DefaultIndexShards,
+				TokenGenerationStrategy:         "spread-minimizing",
+				SpreadMinimizingZones:           []string{"zone-a", "zone-b", "zone-c"},
+				SpreadMinimizingJoinRingInOrder: false,
 			},
 		},
 		{
 			in: Config{
-				IndexShards:   index.DefaultIndexShards,
-				ChunkEncoding: "bad-enc",
+				LifecyclerConfig:        ring.LifecyclerConfig{ID: "instance-3"},
+				ChunkEncoding:           chunkenc.EncSnappy.String(),
+				IndexShards:             index.DefaultIndexShards,
+				TokenGenerationStrategy: "random",
+			},
+		},
+		{
+			in: Config{
+				LifecyclerConfig: ring.LifecyclerConfig{ID: "instance-4"},
+				IndexShards:      index.DefaultIndexShards,
+				ChunkEncoding:    "bad-enc",
 			},
 			err: true,
 		},
 		{
 			in: Config{
-				MaxChunkAge:   time.Minute,
-				ChunkEncoding: chunkenc.EncGZIP.String(),
+				LifecyclerConfig: ring.LifecyclerConfig{ID: "instance-5"},
+				MaxChunkAge:      time.Minute,
+				ChunkEncoding:    chunkenc.EncGZIP.String(),
+			},
+			err: true,
+		},
+		{
+			in: Config{
+				LifecyclerConfig:        ring.LifecyclerConfig{ID: "instance-6"},
+				MaxChunkAge:             time.Minute,
+				ChunkEncoding:           chunkenc.EncGZIP.String(),
+				IndexShards:             index.DefaultIndexShards,
+				TokenGenerationStrategy: "invalid",
+			},
+			err: true,
+		},
+		{
+			in: Config{
+				LifecyclerConfig:                ring.LifecyclerConfig{ID: "instance-7"},
+				MaxChunkAge:                     time.Minute,
+				ChunkEncoding:                   chunkenc.EncGZIP.String(),
+				IndexShards:                     index.DefaultIndexShards,
+				TokenGenerationStrategy:         "spread-minimizing",
+				SpreadMinimizingJoinRingInOrder: true,
 			},
 			err: true,
 		},
 	} {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
 			err := tc.in.Validate()
 			if tc.err {
-				require.NotNil(t, err)
-				return
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
-			require.Nil(t, err)
-			require.Equal(t, tc.expected, tc.in)
 		})
 	}
 }
