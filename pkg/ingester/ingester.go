@@ -162,10 +162,6 @@ func (cfg *Config) Validate() error {
 		return err
 	}
 
-	if err := cfg.LifecyclerConfig.Validate(); err != nil {
-		return err
-	}
-
 	// Set the token generator based on the configured strategy
 	switch cfg.TokenGenerationStrategy {
 	case "random":
@@ -183,6 +179,10 @@ func (cfg *Config) Validate() error {
 		}
 	default:
 		return fmt.Errorf("invalid token generation strategy: %s", cfg.TokenGenerationStrategy)
+	}
+
+	if err := cfg.LifecyclerConfig.Validate(); err != nil {
+		return err
 	}
 
 	if cfg.IndexShards <= 0 {
