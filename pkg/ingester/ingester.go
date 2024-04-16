@@ -170,6 +170,10 @@ func (cfg *Config) Validate() error {
 	case "random":
 		cfg.LifecyclerConfig.RingTokenGenerator = ring.NewRandomTokenGenerator()
 	case "spread-minimizing":
+		if len(cfg.SpreadMinimizingZones) == 0 {
+			return fmt.Errorf("no zones specified for spread minimizing token generation")
+		}
+
 		cfg.LifecyclerConfig.RingTokenGenerator, err = ring.NewSpreadMinimizingTokenGenerator(
 			cfg.LifecyclerConfig.ID,
 			cfg.LifecyclerConfig.Zone,
