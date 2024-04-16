@@ -9,10 +9,11 @@ import (
 
 	"github.com/prometheus/prometheus/model/labels"
 
+	"github.com/grafana/loki/pkg/push"
+
 	"github.com/grafana/loki/v3/pkg/chunkenc"
 	"github.com/grafana/loki/v3/pkg/logproto"
 	"github.com/grafana/loki/v3/pkg/logql/log"
-	"github.com/grafana/loki/v3/pkg/push"
 
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
@@ -81,13 +82,13 @@ func TestSetLineTokenizer(t *testing.T) {
 	bt := NewBloomTokenizer(DefaultNGramLength, DefaultNGramSkip, metrics)
 
 	// Validate defaults
-	require.Equal(t, bt.lineTokenizer.N, DefaultNGramLength)
-	require.Equal(t, bt.lineTokenizer.Skip, DefaultNGramSkip)
+	require.Equal(t, bt.lineTokenizer.N(), DefaultNGramLength)
+	require.Equal(t, bt.lineTokenizer.SkipFactor(), DefaultNGramSkip)
 
 	// Set new tokenizer, and validate against that
 	bt.lineTokenizer = NewNGramTokenizer(6, 7)
-	require.Equal(t, bt.lineTokenizer.N, 6)
-	require.Equal(t, bt.lineTokenizer.Skip, 7)
+	require.Equal(t, bt.lineTokenizer.N(), 6)
+	require.Equal(t, bt.lineTokenizer.SkipFactor(), 7)
 }
 
 func TestTokenizerPopulate(t *testing.T) {
