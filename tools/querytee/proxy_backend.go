@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/grafana/dskit/tracing"
 	"github.com/pkg/errors"
 )
 
@@ -59,9 +60,24 @@ func (b *ProxyBackend) WithFilter(f *regexp.Regexp) *ProxyBackend {
 	return b
 }
 
-func (b *ProxyBackend) ForwardRequest(orig *http.Request, body io.ReadCloser) (int, []byte, error) {
+func (b *ProxyBackend) ForwardRequest(orig *http.Request, body io.ReadCloser) *BackendResponse {
+	start := time.Now()
 	req := b.createBackendRequest(orig, body)
-	return b.doBackendRequest(req)
+
+	// Extract trace ID from the original request context before it's lost
+	traceID, _ := tracing.ExtractSampledTraceID(orig.Context())
+
+	status, responseBody, err := b.doBackendRequest(req)
+	duration := time.Since(start)
+
+	return &BackendResponse{
+		backend:  b,
+		status:   status,
+		body:     responseBody,
+		err:      err,
+		duration: duration,
+		traceID:  traceID,
+	}
 }
 
 func (b *ProxyBackend) createBackendRequest(orig *http.Request, body io.ReadCloser) *http.Request {
