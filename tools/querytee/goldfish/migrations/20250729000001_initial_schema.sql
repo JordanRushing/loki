@@ -56,16 +56,16 @@ CREATE TABLE IF NOT EXISTS comparison_outcomes (
 	FOREIGN KEY (correlation_id) REFERENCES sampled_queries(correlation_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_sampled_queries_tenant ON sampled_queries(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_sampled_queries_time ON sampled_queries(sampled_at);
-CREATE INDEX IF NOT EXISTS idx_comparison_status ON comparison_outcomes(comparison_status);
+CREATE INDEX idx_sampled_queries_tenant ON sampled_queries(tenant_id);
+CREATE INDEX idx_sampled_queries_time ON sampled_queries(sampled_at);
+CREATE INDEX idx_comparison_status ON comparison_outcomes(comparison_status);
 
 -- +goose Down
 -- Drop tables and indexes in reverse order
 
-DROP INDEX IF EXISTS idx_comparison_status;
-DROP INDEX IF EXISTS idx_sampled_queries_time;
-DROP INDEX IF EXISTS idx_sampled_queries_tenant;
+DROP INDEX idx_comparison_status ON comparison_outcomes;
+DROP INDEX idx_sampled_queries_time ON sampled_queries;
+DROP INDEX idx_sampled_queries_tenant ON sampled_queries;
 
 DROP TABLE IF EXISTS comparison_outcomes;
 DROP TABLE IF EXISTS sampled_queries;
